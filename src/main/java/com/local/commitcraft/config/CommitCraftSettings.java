@@ -1,5 +1,6 @@
 package com.local.commitcraft.config;
 
+import com.local.commitcraft.license.DefaultLicense;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
@@ -35,12 +36,14 @@ public final class CommitCraftSettings implements PersistentStateComponent<Commi
 
     @Override
     public SettingsState getState() {
+        ensureDefaultActivationCode();
         return state;
     }
 
     @Override
     public void loadState(SettingsState state) {
         this.state = state == null ? new SettingsState() : state;
+        ensureDefaultActivationCode();
     }
 
     public String getApiKey() {
@@ -60,6 +63,12 @@ public final class CommitCraftSettings implements PersistentStateComponent<Commi
 
     private static String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private void ensureDefaultActivationCode() {
+        if (state.activationCode == null || state.activationCode.isBlank()) {
+            state.activationCode = DefaultLicense.activationCode();
+        }
     }
 
     public static final class SettingsState {

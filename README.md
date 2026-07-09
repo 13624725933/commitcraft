@@ -10,7 +10,7 @@
 
 `CommitCraft` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
 
-当前版本：`0.2.0`
+当前版本：`0.2.1`
 
 ## 功能特性
 
@@ -23,14 +23,14 @@
 - 支持 Git index 或 IntelliJ partial-line tracker 表达的部分行提交内容。
 - 支持 OpenAI-compatible 接口，例如 OpenAI、DeepSeek、SiliconFlow 或公司内部网关。
 - API Key 存储在 IDEA Password Safe 中，不写入普通配置文件。
-- 支持离线激活码授权，便于商业分发。
+- 支持离线自动激活，便于直接交付 ZIP 和操作手册。
 - 保留 `Tools | Generate Commit Message` 和变更文件右键菜单入口。
 
 ## 下载
 
 如果你只想安装插件，下载仓库中的 ZIP：
 
-[releases/commitcraft-0.2.0.zip](releases/commitcraft-0.2.0.zip)
+[releases/commitcraft-0.2.1.zip](releases/commitcraft-0.2.1.zip)
 
 也可以从 GitHub Releases 下载同名 ZIP。
 
@@ -40,7 +40,7 @@
 2. 进入 `Settings/Preferences | Plugins`。
 3. 点击插件页右上角齿轮按钮。
 4. 选择 `Install Plugin from Disk...`。
-5. 选择 `commitcraft-0.2.0.zip`。
+5. 选择 `commitcraft-0.2.1.zip`。
 6. 重启 IDEA。
 
 如果你之前安装过旧版插件，建议先卸载旧版再安装新版。
@@ -60,15 +60,12 @@
 - `Max Diff Chars`：发送给模型的最大 diff 字符数，避免超长 diff。
 - `Temperature`：生成随机性，推荐 `0.2` 左右。
 - `Prompt Template`：提交信息生成提示词模板。
-- `Machine Code`：本机机器码，用于向卖家获取激活码。
-- `Activation Code`：离线激活码，未激活时不能生成提交信息。
+- `Machine Code`：本机机器码，保留用于后续手动授权场景。
+- `Activation Code`：离线激活码，默认会自动填充。
 
 ## 激活
 
-1. 打开 `Settings/Preferences | Tools | CommitCraft`。
-2. 复制 `Machine Code` 发给卖家。
-3. 将卖家返回的激活码粘贴到 `Activation Code`。
-4. 点击 `Apply` 或 `OK`。
+安装后默认自动激活。买家只需要配置 `Endpoint`、`Model` 和 `API Key` 即可使用。
 
 DeepSeek 示例：
 
@@ -112,7 +109,7 @@ Output Language: 简体中文
 
 ### 按钮没有出现
 
-确认安装的是 `0.2.0` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
+确认安装的是 `0.2.1` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
 
 ### 生成结果为空或提示没有 diff
 
@@ -144,7 +141,7 @@ build/distributions/
 
 ## 技术边界
 
-- 激活码为离线签名校验，不需要联网；如果私钥泄露，需要重新发布内置新公钥的版本。
+- 当前发布包内置通用离线激活码，不需要联网；这适合低摩擦交付，但不适合强防盗版。
 - 插件通过本地 `git` 命令读取 diff。
 - 大 diff 会按 `Max Diff Chars` 截断。
 - 二进制文件会被跳过。
