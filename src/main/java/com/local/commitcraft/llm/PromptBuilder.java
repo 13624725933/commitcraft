@@ -1,9 +1,9 @@
-package com.local.gitcommitai.llm;
+package com.local.commitcraft.llm;
 
-import com.local.gitcommitai.config.GitCommitAiSettings;
+import com.local.commitcraft.config.CommitCraftSettings;
 
 public final class PromptBuilder {
-    public String build(GitCommitAiSettings.SettingsState settings, String diff) {
+    public String build(CommitCraftSettings.SettingsState settings, String diff) {
         return settings.promptTemplate
                 .replace("{language}", safe(settings.language))
                 .replace("{model}", safe(settings.model))

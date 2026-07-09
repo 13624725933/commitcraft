@@ -1,4 +1,4 @@
-package com.local.gitcommitai.ui;
+package com.local.commitcraft.ui;
 
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;

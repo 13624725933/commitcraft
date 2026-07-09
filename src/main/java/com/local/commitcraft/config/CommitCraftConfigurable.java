@@ -1,4 +1,4 @@
-package com.local.gitcommitai.config;
+package com.local.commitcraft.config;
 
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
@@ -22,7 +22,7 @@ import java.awt.Insets;
 import java.util.Arrays;
 import java.util.Objects;
 
-public final class GitCommitAiConfigurable implements Configurable {
+public final class CommitCraftConfigurable implements Configurable {
     private JPanel panel;
     private JTextField endpointField;
     private JTextField modelField;
@@ -34,7 +34,7 @@ public final class GitCommitAiConfigurable implements Configurable {
 
     @Override
     public @Nls String getDisplayName() {
-        return "Git Commit AI";
+        return "CommitCraft";
     }
 
     @Override
@@ -50,7 +50,7 @@ public final class GitCommitAiConfigurable implements Configurable {
         promptTemplateArea.setWrapStyleWord(true);
 
         JButton resetPromptButton = new JButton("Reset Prompt");
-        resetPromptButton.addActionListener(event -> promptTemplateArea.setText(GitCommitAiSettings.DEFAULT_PROMPT));
+        resetPromptButton.addActionListener(event -> promptTemplateArea.setText(CommitCraftSettings.DEFAULT_PROMPT));
 
         JPanel form = new JPanel(new GridBagLayout());
         addRow(form, 0, "Endpoint", endpointField);
@@ -78,8 +78,8 @@ public final class GitCommitAiConfigurable implements Configurable {
 
     @Override
     public boolean isModified() {
-        GitCommitAiSettings settings = GitCommitAiSettings.getInstance();
-        GitCommitAiSettings.SettingsState state = settings.getState();
+        CommitCraftSettings settings = CommitCraftSettings.getInstance();
+        CommitCraftSettings.SettingsState state = settings.getState();
         return !Objects.equals(endpointField.getText(), state.endpoint)
                 || !Objects.equals(modelField.getText(), state.model)
                 || !Arrays.equals(apiKeyField.getPassword(), settings.getApiKey().toCharArray())
@@ -91,8 +91,8 @@ public final class GitCommitAiConfigurable implements Configurable {
 
     @Override
     public void apply() throws ConfigurationException {
-        GitCommitAiSettings settings = GitCommitAiSettings.getInstance();
-        GitCommitAiSettings.SettingsState state = settings.getState();
+        CommitCraftSettings settings = CommitCraftSettings.getInstance();
+        CommitCraftSettings.SettingsState state = settings.getState();
 
         String endpoint = endpointField.getText().trim();
         String model = modelField.getText().trim();
@@ -120,8 +120,8 @@ public final class GitCommitAiConfigurable implements Configurable {
 
     @Override
     public void reset() {
-        GitCommitAiSettings settings = GitCommitAiSettings.getInstance();
-        GitCommitAiSettings.SettingsState state = settings.getState();
+        CommitCraftSettings settings = CommitCraftSettings.getInstance();
+        CommitCraftSettings.SettingsState state = settings.getState();
         endpointField.setText(state.endpoint);
         modelField.setText(state.model);
         apiKeyField.setText(settings.getApiKey());

@@ -1,6 +1,6 @@
-package com.local.gitcommitai.llm;
+package com.local.commitcraft.llm;
 
-import com.local.gitcommitai.config.GitCommitAiSettings;
+import com.local.commitcraft.config.CommitCraftSettings;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -19,7 +19,7 @@ public final class OpenAiCompatibleClient {
             .connectTimeout(Duration.ofSeconds(15))
             .build();
 
-    public String generate(String apiKey, GitCommitAiSettings.SettingsState settings, String prompt)
+    public String generate(String apiKey, CommitCraftSettings.SettingsState settings, String prompt)
             throws IOException, InterruptedException {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", settings.model);

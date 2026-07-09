@@ -1,34 +1,34 @@
 <idea-plugin>
-    <id>com.local.gitcommitai</id>
-    <name>Git Commit AI</name>
-    <vendor>Local</vendor>
-    <version>0.1.3</version>
+    <id>com.local.commitcraft</id>
+    <name>CommitCraft</name>
+    <vendor>CommitCraft</vendor>
+    <version>0.1.4</version>
     <idea-version since-build="242"/>
 
     <description><![CDATA[
-        Generate concise Git commit messages from the current diff using an OpenAI-compatible LLM endpoint.
+        CommitCraft generates concise Git commit messages from the current diff using an OpenAI-compatible LLM endpoint.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.local.gitcommitai.config.GitCommitAiSettings"/>
+        <applicationService serviceImplementation="com.local.commitcraft.config.CommitCraftSettings"/>
         <applicationConfigurable
                 parentId="tools"
-                instance="com.local.gitcommitai.config.GitCommitAiConfigurable"
-                id="com.local.gitcommitai.settings"
-                displayName="Git Commit AI"/>
-        <notificationGroup id="Git Commit AI" displayType="BALLOON"/>
+                instance="com.local.commitcraft.config.CommitCraftConfigurable"
+                id="com.local.commitcraft.settings"
+                displayName="CommitCraft"/>
+        <notificationGroup id="CommitCraft" displayType="BALLOON"/>
     </extensions>
 
     <actions>
         <action
-                id="com.local.gitcommitai.GenerateCommitMessage"
-                class="com.local.gitcommitai.action.GenerateCommitMessageAction"
-                text="Generate AI Commit Message"
+                id="com.local.commitcraft.GenerateCommitMessage"
+                class="com.local.commitcraft.action.GenerateCommitMessageAction"
+                text="Generate Commit Message"
                 description="Generate a Git commit message from the current diff"
-                icon="AllIcons.Actions.IntentionBulb">
+                icon="/icons/commitcraft.svg">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <add-to-group group-id="ChangesView.CommitToolbar" anchor="after" relative-to-action="Vcs.MessageActionGroup"/>
             <add-to-group group-id="ChangesViewPopupMenu" anchor="after" relative-to-action="CheckinFiles"/>

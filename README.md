@@ -1,12 +1,16 @@
-# Git Commit AI
+# CommitCraft
+
+<p align="center">
+  <img src="assets/commitcraft-logo.png" alt="CommitCraft logo" width="220">
+</p>
 
 一个 IntelliJ IDEA 插件，用 OpenAI-compatible Chat Completions API 根据当前 Git diff 生成提交信息。
 
 ## 插件介绍
 
-`Git Commit AI` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
+`CommitCraft` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
 
-当前版本：`0.1.3`
+当前版本：`0.1.4`
 
 ## 功能特性
 
@@ -18,13 +22,13 @@
 - 支持 Git index 或 IntelliJ partial-line tracker 表达的部分行提交内容。
 - 支持 OpenAI-compatible 接口，例如 OpenAI、DeepSeek、SiliconFlow 或公司内部网关。
 - API Key 存储在 IDEA Password Safe 中，不写入普通配置文件。
-- 保留 `Tools | Generate AI Commit Message` 和变更文件右键菜单入口。
+- 保留 `Tools | Generate Commit Message` 和变更文件右键菜单入口。
 
 ## 下载
 
 如果你只想安装插件，下载仓库中的 ZIP：
 
-[releases/idea-git-commit-ai-0.1.3.zip](releases/idea-git-commit-ai-0.1.3.zip)
+[releases/commitcraft-0.1.4.zip](releases/commitcraft-0.1.4.zip)
 
 也可以从 GitHub Releases 下载同名 ZIP。
 
@@ -34,7 +38,7 @@
 2. 进入 `Settings/Preferences | Plugins`。
 3. 点击插件页右上角齿轮按钮。
 4. 选择 `Install Plugin from Disk...`。
-5. 选择 `idea-git-commit-ai-0.1.3.zip`。
+5. 选择 `commitcraft-0.1.4.zip`。
 6. 重启 IDEA。
 
 如果你之前安装过旧版插件，建议先卸载旧版再安装新版。
@@ -43,7 +47,7 @@
 
 安装后进入：
 
-`Settings/Preferences | Tools | Git Commit AI`
+`Settings/Preferences | Tools | CommitCraft`
 
 常用配置项：
 
@@ -67,14 +71,14 @@ Output Language: 简体中文
 
 1. 打开项目的 Commit 工具窗口。
 2. 勾选本次要提交的文件或部分变更。
-3. 在提交信息输入框上方点击灯泡图标 `Generate AI Commit Message`。
+3. 在提交信息输入框上方点击 CommitCraft 图标 `Generate Commit Message`。
 4. 等待生成完成，插件会把提交信息写入 Commit message 输入框。
 5. 检查生成内容后再点击 `提交` 或 `提交并推送`。
 
 也可以使用：
 
-- `Tools | Generate AI Commit Message`
-- 变更文件右键菜单中的 `Generate AI Commit Message`
+- `Tools | Generate Commit Message`
+- 变更文件右键菜单中的 `Generate Commit Message`
 
 ## 生成范围说明
 
@@ -95,7 +99,7 @@ Output Language: 简体中文
 
 ### 按钮没有出现
 
-确认安装的是 `0.1.3` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
+确认安装的是 `0.1.4` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
 
 ### 生成结果为空或提示没有 diff
 
@@ -131,4 +135,3 @@ build/distributions/
 - 大 diff 会按 `Max Diff Chars` 截断。
 - 二进制文件会被跳过。
 - 非 staging 模式的部分行支持依赖 IntelliJ VCS implementation API；不同 IDEA 版本可能存在兼容差异。
-

@@ -1,4 +1,4 @@
-package com.local.gitcommitai.config;
+package com.local.commitcraft.config;
 
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
@@ -8,8 +8,8 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 
-@State(name = "GitCommitAiSettings", storages = @Storage("gitCommitAi.xml"))
-public final class GitCommitAiSettings implements PersistentStateComponent<GitCommitAiSettings.SettingsState> {
+@State(name = "CommitCraftSettings", storages = @Storage("commitCraft.xml"))
+public final class CommitCraftSettings implements PersistentStateComponent<CommitCraftSettings.SettingsState> {
     public static final String DEFAULT_PROMPT = """
             你是一名资深软件工程师。请根据下面的 git diff 生成一条清晰、简洁、可直接使用的提交信息。
 
@@ -23,13 +23,13 @@ public final class GitCommitAiSettings implements PersistentStateComponent<GitCo
             {diff}
             """;
 
-    private static final String API_KEY_SERVICE = "Git Commit AI";
+    private static final String API_KEY_SERVICE = "CommitCraft";
     private static final String API_KEY_USER = "openai-compatible-api-key";
 
     private SettingsState state = new SettingsState();
 
-    public static GitCommitAiSettings getInstance() {
-        return ApplicationManager.getApplication().getService(GitCommitAiSettings.class);
+    public static CommitCraftSettings getInstance() {
+        return ApplicationManager.getApplication().getService(CommitCraftSettings.class);
     }
 
     @Override

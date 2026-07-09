@@ -1,4 +1,4 @@
-package com.local.gitcommitai.git;
+package com.local.commitcraft.git;
 
 import java.nio.file.Path;
 import java.util.List;

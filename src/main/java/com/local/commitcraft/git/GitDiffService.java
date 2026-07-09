@@ -1,4 +1,4 @@
-package com.local.gitcommitai.git;
+package com.local.commitcraft.git;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
@@ -294,7 +294,7 @@ public final class GitDiffService {
         if (truncated) {
             // Keep truncation explicit so the model does not assume it saw the complete change set.
             diff = diff.substring(0, limit)
-                    + "\n\n[Diff truncated by Git Commit AI. Original characters: " + originalChars + "]\n";
+                    + "\n\n[Diff truncated by CommitCraft. Original characters: " + originalChars + "]\n";
         }
         return new DiffResult(root, diff, truncated, originalChars, List.copyOf(warnings));
     }

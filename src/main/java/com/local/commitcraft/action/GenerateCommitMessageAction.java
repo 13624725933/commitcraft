@@ -1,11 +1,11 @@
-package com.local.gitcommitai.action;
+package com.local.commitcraft.action;
 
-import com.local.gitcommitai.config.GitCommitAiSettings;
-import com.local.gitcommitai.git.DiffResult;
-import com.local.gitcommitai.git.GitDiffService;
-import com.local.gitcommitai.llm.OpenAiCompatibleClient;
-import com.local.gitcommitai.llm.PromptBuilder;
-import com.local.gitcommitai.ui.GeneratedMessageDialog;
+import com.local.commitcraft.config.CommitCraftSettings;
+import com.local.commitcraft.git.DiffResult;
+import com.local.commitcraft.git.GitDiffService;
+import com.local.commitcraft.llm.OpenAiCompatibleClient;
+import com.local.commitcraft.llm.PromptBuilder;
+import com.local.commitcraft.ui.GeneratedMessageDialog;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class GenerateCommitMessageAction extends AnAction implements DumbAware {
-    private static final String NOTIFICATION_GROUP = "Git Commit AI";
+    private static final String NOTIFICATION_GROUP = "CommitCraft";
 
     @Override
     public void update(@NotNull AnActionEvent event) {
@@ -56,15 +56,15 @@ public final class GenerateCommitMessageAction extends AnAction implements DumbA
             return;
         }
 
-        GitCommitAiSettings settings = GitCommitAiSettings.getInstance();
+        CommitCraftSettings settings = CommitCraftSettings.getInstance();
         String apiKey = settings.getApiKey();
         if (apiKey.isBlank()) {
-            showNotification(project, "Configure an API key in Settings | Tools | Git Commit AI.", NotificationType.WARNING);
+            showNotification(project, "Configure an API key in Settings | Tools | CommitCraft.", NotificationType.WARNING);
             return;
         }
 
         CommitTarget commitTarget = commitTarget(event);
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Generating AI Commit Message", true) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Generating Commit Message", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
@@ -85,7 +85,7 @@ public final class GenerateCommitMessageAction extends AnAction implements DumbA
         });
     }
 
-    private DiffResult collectDiff(Project project, GitCommitAiSettings settings, CommitTarget commitTarget)
+    private DiffResult collectDiff(Project project, CommitCraftSettings settings, CommitTarget commitTarget)
             throws Exception {
         GitDiffService diffService = new GitDiffService();
         if (!commitTarget.hasScopedDiff()) {
@@ -123,12 +123,12 @@ public final class GenerateCommitMessageAction extends AnAction implements DumbA
             CommitMessageUi messageUi = commitTarget.workflowUi().getCommitMessageUi();
             messageUi.setText(message);
             messageUi.focus();
-            showNotification(project, "AI commit message inserted into the Commit tool window.", NotificationType.INFORMATION);
+            showNotification(project, "CommitCraft inserted the commit message into the Commit tool window.", NotificationType.INFORMATION);
             return;
         }
         if (commitTarget.messageControl() != null) {
             commitTarget.messageControl().setCommitMessage(message);
-            showNotification(project, "AI commit message inserted into the commit message field.", NotificationType.INFORMATION);
+            showNotification(project, "CommitCraft inserted the commit message into the commit message field.", NotificationType.INFORMATION);
             return;
         }
         new GeneratedMessageDialog(project, message, details).show();
