@@ -10,7 +10,7 @@
 
 `CommitCraft` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
 
-当前版本：`0.1.4`
+当前版本：`0.1.5`
 
 ## 功能特性
 
@@ -28,7 +28,7 @@
 
 如果你只想安装插件，下载仓库中的 ZIP：
 
-[releases/commitcraft-0.1.4.zip](releases/commitcraft-0.1.4.zip)
+[releases/commitcraft-0.1.5.zip](releases/commitcraft-0.1.5.zip)
 
 也可以从 GitHub Releases 下载同名 ZIP。
 
@@ -38,7 +38,7 @@
 2. 进入 `Settings/Preferences | Plugins`。
 3. 点击插件页右上角齿轮按钮。
 4. 选择 `Install Plugin from Disk...`。
-5. 选择 `commitcraft-0.1.4.zip`。
+5. 选择 `commitcraft-0.1.5.zip`。
 6. 重启 IDEA。
 
 如果你之前安装过旧版插件，建议先卸载旧版再安装新版。
@@ -54,7 +54,7 @@
 - `Endpoint`：OpenAI-compatible chat completions 地址。
 - `Model`：模型名称。
 - `API Key`：模型服务的 API Key。
-- `Output Language`：提交信息输出语言，例如 `简体中文`。
+- `Output Language`：提交信息输出语言，下拉可选常用全球语种，默认 `简体中文`。
 - `Max Diff Chars`：发送给模型的最大 diff 字符数，避免超长 diff。
 - `Temperature`：生成随机性，推荐 `0.2` 左右。
 - `Prompt Template`：提交信息生成提示词模板。
@@ -99,7 +99,7 @@ Output Language: 简体中文
 
 ### 按钮没有出现
 
-确认安装的是 `0.1.4` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
+确认安装的是 `0.1.5` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
 
 ### 生成结果为空或提示没有 diff
 

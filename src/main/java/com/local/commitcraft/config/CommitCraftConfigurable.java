@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -23,11 +24,32 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public final class CommitCraftConfigurable implements Configurable {
+    private static final String[] POPULAR_LANGUAGES = {
+            CommitCraftSettings.DEFAULT_LANGUAGE,
+            "繁體中文",
+            "English",
+            "日本語",
+            "한국어",
+            "Español",
+            "Français",
+            "Deutsch",
+            "Português",
+            "Русский",
+            "العربية",
+            "हिन्दी",
+            "Bahasa Indonesia",
+            "Türkçe",
+            "Tiếng Việt",
+            "ไทย",
+            "Italiano",
+            "Nederlands"
+    };
+
     private JPanel panel;
     private JTextField endpointField;
     private JTextField modelField;
     private JPasswordField apiKeyField;
-    private JTextField languageField;
+    private JComboBox<String> languageComboBox;
     private JSpinner maxDiffCharsSpinner;
     private JSpinner temperatureSpinner;
     private JTextArea promptTemplateArea;
@@ -42,7 +64,7 @@ public final class CommitCraftConfigurable implements Configurable {
         endpointField = new JTextField();
         modelField = new JTextField();
         apiKeyField = new JPasswordField();
-        languageField = new JTextField();
+        languageComboBox = new JComboBox<>(POPULAR_LANGUAGES);
         maxDiffCharsSpinner = new JSpinner(new SpinnerNumberModel(12000, 2000, 80000, 1000));
         temperatureSpinner = new JSpinner(new SpinnerNumberModel(0.2d, 0.0d, 2.0d, 0.1d));
         promptTemplateArea = new JTextArea(12, 64);
@@ -56,7 +78,7 @@ public final class CommitCraftConfigurable implements Configurable {
         addRow(form, 0, "Endpoint", endpointField);
         addRow(form, 1, "Model", modelField);
         addRow(form, 2, "API Key", apiKeyField);
-        addRow(form, 3, "Output Language", languageField);
+        addRow(form, 3, "Output Language", languageComboBox);
         addRow(form, 4, "Max Diff Chars", maxDiffCharsSpinner);
         addRow(form, 5, "Temperature", temperatureSpinner);
 
@@ -83,7 +105,7 @@ public final class CommitCraftConfigurable implements Configurable {
         return !Objects.equals(endpointField.getText(), state.endpoint)
                 || !Objects.equals(modelField.getText(), state.model)
                 || !Arrays.equals(apiKeyField.getPassword(), settings.getApiKey().toCharArray())
-                || !Objects.equals(languageField.getText(), state.language)
+                || !Objects.equals(selectedLanguage(), normalizedLanguage(state.language))
                 || !Objects.equals(maxDiffCharsSpinner.getValue(), state.maxDiffChars)
                 || !Objects.equals(temperatureSpinner.getValue(), state.temperature)
                 || !Objects.equals(promptTemplateArea.getText(), state.promptTemplate);
@@ -96,7 +118,7 @@ public final class CommitCraftConfigurable implements Configurable {
 
         String endpoint = endpointField.getText().trim();
         String model = modelField.getText().trim();
-        String language = languageField.getText().trim();
+        String language = selectedLanguage();
         String prompt = promptTemplateArea.getText().trim();
 
         if (endpoint.isEmpty()) {
@@ -111,7 +133,7 @@ public final class CommitCraftConfigurable implements Configurable {
 
         state.endpoint = endpoint;
         state.model = model;
-        state.language = language.isEmpty() ? "简体中文" : language;
+        state.language = normalizedLanguage(language);
         state.maxDiffChars = ((Number) maxDiffCharsSpinner.getValue()).intValue();
         state.temperature = ((Number) temperatureSpinner.getValue()).doubleValue();
         state.promptTemplate = prompt;
@@ -125,7 +147,7 @@ public final class CommitCraftConfigurable implements Configurable {
         endpointField.setText(state.endpoint);
         modelField.setText(state.model);
         apiKeyField.setText(settings.getApiKey());
-        languageField.setText(state.language);
+        selectLanguage(state.language);
         maxDiffCharsSpinner.setValue(state.maxDiffChars);
         temperatureSpinner.setValue(state.temperature);
         promptTemplateArea.setText(state.promptTemplate);
@@ -137,10 +159,36 @@ public final class CommitCraftConfigurable implements Configurable {
         endpointField = null;
         modelField = null;
         apiKeyField = null;
-        languageField = null;
+        languageComboBox = null;
         maxDiffCharsSpinner = null;
         temperatureSpinner = null;
         promptTemplateArea = null;
+    }
+
+    private String selectedLanguage() {
+        Object selected = languageComboBox.getSelectedItem();
+        return selected == null ? "" : selected.toString().trim();
+    }
+
+    private void selectLanguage(String language) {
+        String value = normalizedLanguage(language);
+        if (!containsLanguage(value)) {
+            languageComboBox.addItem(value);
+        }
+        languageComboBox.setSelectedItem(value);
+    }
+
+    private static String normalizedLanguage(String language) {
+        return language == null || language.isBlank() ? CommitCraftSettings.DEFAULT_LANGUAGE : language.trim();
+    }
+
+    private boolean containsLanguage(String language) {
+        for (int index = 0; index < languageComboBox.getItemCount(); index++) {
+            if (Objects.equals(languageComboBox.getItemAt(index), language)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void addRow(JPanel form, int row, String label, JComponent component) {

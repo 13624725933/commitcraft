@@ -10,6 +10,7 @@ import com.intellij.openapi.components.Storage;
 
 @State(name = "CommitCraftSettings", storages = @Storage("commitCraft.xml"))
 public final class CommitCraftSettings implements PersistentStateComponent<CommitCraftSettings.SettingsState> {
+    public static final String DEFAULT_LANGUAGE = "简体中文";
     public static final String DEFAULT_PROMPT = """
             你是一名资深软件工程师。请根据下面的 git diff 生成一条清晰、简洁、可直接使用的提交信息。
 
@@ -64,7 +65,7 @@ public final class CommitCraftSettings implements PersistentStateComponent<Commi
     public static final class SettingsState {
         public String endpoint = "https://api.openai.com/v1/chat/completions";
         public String model = "gpt-4.1-mini";
-        public String language = "简体中文";
+        public String language = DEFAULT_LANGUAGE;
         public int maxDiffChars = 12000;
         public double temperature = 0.2d;
         public String promptTemplate = DEFAULT_PROMPT;
