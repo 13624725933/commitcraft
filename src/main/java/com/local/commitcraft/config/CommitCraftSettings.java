@@ -69,5 +69,6 @@ public final class CommitCraftSettings implements PersistentStateComponent<Commi
         public int maxDiffChars = 12000;
         public double temperature = 0.2d;
         public String promptTemplate = DEFAULT_PROMPT;
+        public String activationCode = "";
     }
 }

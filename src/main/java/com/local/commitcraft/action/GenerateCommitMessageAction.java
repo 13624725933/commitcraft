@@ -3,6 +3,9 @@ package com.local.commitcraft.action;
 import com.local.commitcraft.config.CommitCraftSettings;
 import com.local.commitcraft.git.DiffResult;
 import com.local.commitcraft.git.GitDiffService;
+import com.local.commitcraft.license.LicenseCheck;
+import com.local.commitcraft.license.LicenseVerifier;
+import com.local.commitcraft.license.MachineCode;
 import com.local.commitcraft.llm.OpenAiCompatibleClient;
 import com.local.commitcraft.llm.PromptBuilder;
 import com.local.commitcraft.ui.GeneratedMessageDialog;
@@ -57,6 +60,14 @@ public final class GenerateCommitMessageAction extends AnAction implements DumbA
         }
 
         CommitCraftSettings settings = CommitCraftSettings.getInstance();
+        LicenseCheck license = new LicenseVerifier().verify(settings.getState().activationCode, MachineCode.current());
+        if (!license.valid()) {
+            showNotification(project,
+                    license.message() + " Settings | Tools | CommitCraft 中复制机器码并填写激活码。",
+                    NotificationType.WARNING);
+            return;
+        }
+
         String apiKey = settings.getApiKey();
         if (apiKey.isBlank()) {
             showNotification(project, "Configure an API key in Settings | Tools | CommitCraft.", NotificationType.WARNING);

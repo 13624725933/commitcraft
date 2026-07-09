@@ -1,0 +1,7 @@
+CommitCraft includes the following third-party dependency:
+
+- Gson 2.11.0
+  License: Apache License 2.0
+  Project: https://github.com/google/gson
+
+CommitCraft is not affiliated with JetBrains, OpenAI, DeepSeek, Alibaba Cloud, or SiliconFlow.

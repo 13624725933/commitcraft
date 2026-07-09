@@ -4,3 +4,5 @@ build/
 out/
 *.iml
 .DS_Store
+seller-secrets/
+*.pkcs8

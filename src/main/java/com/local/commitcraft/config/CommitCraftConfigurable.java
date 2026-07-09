@@ -1,5 +1,8 @@
 package com.local.commitcraft.config;
 
+import com.local.commitcraft.license.LicenseCheck;
+import com.local.commitcraft.license.LicenseVerifier;
+import com.local.commitcraft.license.MachineCode;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.ui.components.JBScrollPane;
@@ -16,7 +19,11 @@ import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.BorderLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -53,6 +60,9 @@ public final class CommitCraftConfigurable implements Configurable {
     private JSpinner maxDiffCharsSpinner;
     private JSpinner temperatureSpinner;
     private JTextArea promptTemplateArea;
+    private JTextField machineCodeField;
+    private JTextArea activationCodeArea;
+    private JLabel licenseStatusLabel;
 
     @Override
     public @Nls String getDisplayName() {
@@ -70,9 +80,39 @@ public final class CommitCraftConfigurable implements Configurable {
         promptTemplateArea = new JTextArea(12, 64);
         promptTemplateArea.setLineWrap(true);
         promptTemplateArea.setWrapStyleWord(true);
+        machineCodeField = new JTextField(MachineCode.current());
+        machineCodeField.setEditable(false);
+        activationCodeArea = new JTextArea(3, 64);
+        activationCodeArea.setLineWrap(true);
+        activationCodeArea.setWrapStyleWord(true);
+        activationCodeArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent event) {
+                updateLicenseStatus();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent event) {
+                updateLicenseStatus();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent event) {
+                updateLicenseStatus();
+            }
+        });
+        licenseStatusLabel = new JLabel();
 
         JButton resetPromptButton = new JButton("Reset Prompt");
         resetPromptButton.addActionListener(event -> promptTemplateArea.setText(CommitCraftSettings.DEFAULT_PROMPT));
+        JButton copyMachineCodeButton = new JButton("Copy");
+        copyMachineCodeButton.addActionListener(event -> Toolkit.getDefaultToolkit()
+                .getSystemClipboard()
+                .setContents(new StringSelection(machineCodeField.getText()), null));
+
+        JPanel machineCodePanel = new JPanel(new BorderLayout(4, 0));
+        machineCodePanel.add(machineCodeField, BorderLayout.CENTER);
+        machineCodePanel.add(copyMachineCodeButton, BorderLayout.EAST);
 
         JPanel form = new JPanel(new GridBagLayout());
         addRow(form, 0, "Endpoint", endpointField);
@@ -81,6 +121,9 @@ public final class CommitCraftConfigurable implements Configurable {
         addRow(form, 3, "Output Language", languageComboBox);
         addRow(form, 4, "Max Diff Chars", maxDiffCharsSpinner);
         addRow(form, 5, "Temperature", temperatureSpinner);
+        addRow(form, 6, "Machine Code", machineCodePanel);
+        addRow(form, 7, "Activation Code", new JBScrollPane(activationCodeArea));
+        addRow(form, 8, "License Status", licenseStatusLabel);
 
         JPanel promptHeader = new JPanel(new BorderLayout());
         promptHeader.add(new JLabel("Prompt Template"), BorderLayout.WEST);
@@ -108,7 +151,8 @@ public final class CommitCraftConfigurable implements Configurable {
                 || !Objects.equals(selectedLanguage(), normalizedLanguage(state.language))
                 || !Objects.equals(maxDiffCharsSpinner.getValue(), state.maxDiffChars)
                 || !Objects.equals(temperatureSpinner.getValue(), state.temperature)
-                || !Objects.equals(promptTemplateArea.getText(), state.promptTemplate);
+                || !Objects.equals(promptTemplateArea.getText(), state.promptTemplate)
+                || !Objects.equals(activationCodeArea.getText().trim(), nullToEmpty(state.activationCode));
     }
 
     @Override
@@ -137,6 +181,7 @@ public final class CommitCraftConfigurable implements Configurable {
         state.maxDiffChars = ((Number) maxDiffCharsSpinner.getValue()).intValue();
         state.temperature = ((Number) temperatureSpinner.getValue()).doubleValue();
         state.promptTemplate = prompt;
+        state.activationCode = activationCodeArea.getText().trim();
         settings.setApiKey(new String(apiKeyField.getPassword()));
     }
 
@@ -151,6 +196,9 @@ public final class CommitCraftConfigurable implements Configurable {
         maxDiffCharsSpinner.setValue(state.maxDiffChars);
         temperatureSpinner.setValue(state.temperature);
         promptTemplateArea.setText(state.promptTemplate);
+        machineCodeField.setText(MachineCode.current());
+        activationCodeArea.setText(nullToEmpty(state.activationCode));
+        updateLicenseStatus();
     }
 
     @Override
@@ -163,6 +211,17 @@ public final class CommitCraftConfigurable implements Configurable {
         maxDiffCharsSpinner = null;
         temperatureSpinner = null;
         promptTemplateArea = null;
+        machineCodeField = null;
+        activationCodeArea = null;
+        licenseStatusLabel = null;
+    }
+
+    private void updateLicenseStatus() {
+        if (licenseStatusLabel == null || activationCodeArea == null) {
+            return;
+        }
+        LicenseCheck check = new LicenseVerifier().verify(activationCodeArea.getText(), MachineCode.current());
+        licenseStatusLabel.setText(check.message());
     }
 
     private String selectedLanguage() {
@@ -189,6 +248,10 @@ public final class CommitCraftConfigurable implements Configurable {
             }
         }
         return false;
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private static void addRow(JPanel form, int row, String label, JComponent component) {
