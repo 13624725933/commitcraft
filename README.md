@@ -10,13 +10,14 @@
 
 `CommitCraft` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
 
-当前版本：`0.1.5`
+当前版本：`0.1.6`
 
 ## 功能特性
 
 - 在 IDEA Commit 工具窗口中生成提交信息。
 - 生成按钮位于提交信息输入框上方工具栏，靠近“修正”和历史图标。
 - 支持从已勾选的变更文件生成提交信息。
+- 支持一个 IDEA 项目中包含多个子 Git 仓库的场景。
 - 支持已勾选的 unversioned text 文件。
 - 优先读取 staged diff，未 staged 时回退到 working tree diff。
 - 支持 Git index 或 IntelliJ partial-line tracker 表达的部分行提交内容。
@@ -28,7 +29,7 @@
 
 如果你只想安装插件，下载仓库中的 ZIP：
 
-[releases/commitcraft-0.1.5.zip](releases/commitcraft-0.1.5.zip)
+[releases/commitcraft-0.1.6.zip](releases/commitcraft-0.1.6.zip)
 
 也可以从 GitHub Releases 下载同名 ZIP。
 
@@ -38,7 +39,7 @@
 2. 进入 `Settings/Preferences | Plugins`。
 3. 点击插件页右上角齿轮按钮。
 4. 选择 `Install Plugin from Disk...`。
-5. 选择 `commitcraft-0.1.5.zip`。
+5. 选择 `commitcraft-0.1.6.zip`。
 6. 重启 IDEA。
 
 如果你之前安装过旧版插件，建议先卸载旧版再安装新版。
@@ -91,6 +92,8 @@ Output Language: 简体中文
 
 从 `Tools` 菜单触发时，插件按仓库整体 diff 生成。
 
+如果 IDEA 项目根目录本身不是 Git 仓库，但子目录是多个 Git 仓库，插件会按选中文件自动解析所属子仓库。
+
 ## 常见问题
 
 ### HTTP 402: Insufficient Balance
@@ -99,7 +102,7 @@ Output Language: 简体中文
 
 ### 按钮没有出现
 
-确认安装的是 `0.1.5` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
+确认安装的是 `0.1.6` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
 
 ### 生成结果为空或提示没有 diff
 

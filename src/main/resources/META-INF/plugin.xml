@@ -2,7 +2,7 @@
     <id>com.local.commitcraft</id>
     <name>CommitCraft</name>
     <vendor>CommitCraft</vendor>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
     <idea-version since-build="242"/>
 
     <description><![CDATA[

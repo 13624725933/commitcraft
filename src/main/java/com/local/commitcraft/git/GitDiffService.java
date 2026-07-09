@@ -33,23 +33,32 @@ public final class GitDiffService {
 
     public DiffResult collect(Project project, int maxDiffChars) throws IOException, InterruptedException {
         Path projectPath = projectPath(project);
-        Path root = resolveGitRoot(projectPath);
+        List<Path> roots = gitRoots(projectPath);
         List<String> warnings = new ArrayList<>();
+        if (roots.size() == 1) {
+            Path root = roots.get(0);
+            String diff = collectRootDiff(root, warnings);
+            if (diff.isBlank()) {
+                throw new IOException("No Git diff found. Stage or modify files before generating a commit message.");
+            }
+            return buildResult(root, diff, maxDiffChars, warnings);
+        }
 
-        String diff = runGit(root, "diff", "--cached", "--no-ext-diff", "--diff-filter=ACMRTUXB", "--");
-        if (diff.isBlank()) {
-            warnings.add("No staged diff found; used working tree diff.");
-            diff = runGit(root, "diff", "--no-ext-diff", "--diff-filter=ACMRTUXB", "--");
+        warnings.add("Project directory is not a Git repository; collected diffs from child Git repositories.");
+        StringBuilder builder = new StringBuilder();
+        for (Path root : roots) {
+            String diff = collectRootDiff(root, warnings);
+            if (diff.isBlank()) {
+                continue;
+            }
+            appendRepositoryHeader(builder, root);
+            builder.append(diff);
         }
-        if (diff.isBlank()) {
-            warnings.add("No regular diff found; checked small untracked text files.");
-            diff = collectUntrackedFiles(root, warnings, null);
-        }
-        if (diff.isBlank()) {
+        if (builder.isEmpty()) {
             throw new IOException("No Git diff found. Stage or modify files before generating a commit message.");
         }
 
-        return buildResult(root, diff, maxDiffChars, warnings);
+        return buildResult(projectPath, builder.toString(), maxDiffChars, warnings);
     }
 
     public DiffResult collect(
@@ -58,44 +67,57 @@ public final class GitDiffService {
             Collection<Change> includedChanges,
             Collection<FilePath> includedUnversionedFiles
     ) throws IOException, InterruptedException {
-        Path projectPath = projectPath(project);
-        Path root = resolveGitRoot(projectPath);
         List<String> warnings = new ArrayList<>();
-        List<String> pathspecs = new ArrayList<>(changePathspecs(root, includedChanges));
-        Set<String> unversionedPathspecs = filePathspecs(root, includedUnversionedFiles);
+        Map<Path, GitRootScope> scopes = gitRootScopes(includedChanges, includedUnversionedFiles);
 
-        if (pathspecs.isEmpty() && unversionedPathspecs.isEmpty()) {
+        if (scopes.isEmpty()) {
             throw new IOException("No included changes selected in the Commit tool window.");
+        }
+        if (scopes.size() > 1) {
+            warnings.add("Collected included changes from " + scopes.size() + " Git repositories.");
         }
 
         StringBuilder builder = new StringBuilder();
-        // IntelliJ stores non-staging partial-line commit state in line status trackers, not in Git's index.
-        PartialDiff partialDiff = collectPartialTrackerDiffs(project, root, includedChanges, warnings);
-        if (!partialDiff.diff().isBlank()) {
-            builder.append(partialDiff.diff());
-            pathspecs.removeAll(partialDiff.relativePaths());
-        }
+        for (GitRootScope scope : scopes.values()) {
+            Path root = scope.root();
+            List<String> pathspecs = new ArrayList<>(scope.changePathspecs());
+            StringBuilder rootBuilder = new StringBuilder();
 
-        if (!pathspecs.isEmpty()) {
-            String diff = runGit(root, diffArgs(true, pathspecs));
-            if (diff.isBlank()) {
-                warnings.add("No staged diff found for included changes; used full working tree diff for included files.");
-                diff = runGit(root, diffArgs(false, pathspecs));
-            } else {
-                warnings.add("Used staged diff for included changes.");
+            // IntelliJ stores non-staging partial-line commit state in line status trackers, not in Git's index.
+            PartialDiff partialDiff = collectPartialTrackerDiffs(project, root, includedChanges, warnings);
+            if (!partialDiff.diff().isBlank()) {
+                rootBuilder.append(partialDiff.diff());
+                pathspecs.removeAll(partialDiff.relativePaths());
             }
-            builder.append(diff);
-        }
 
-        if (!unversionedPathspecs.isEmpty()) {
-            String untrackedDiff = collectUntrackedFiles(root, warnings, unversionedPathspecs);
-            if (untrackedDiff.isBlank()) {
-                warnings.add("No selected unversioned text files were available to include.");
-            } else {
-                if (builder.length() > 0 && builder.charAt(builder.length() - 1) != '\n') {
-                    builder.append('\n');
+            if (!pathspecs.isEmpty()) {
+                String diff = runGit(root, diffArgs(true, pathspecs));
+                if (diff.isBlank()) {
+                    warnings.add("No staged diff found for included changes; used full working tree diff for included files.");
+                    diff = runGit(root, diffArgs(false, pathspecs));
+                } else {
+                    warnings.add("Used staged diff for included changes.");
                 }
-                builder.append(untrackedDiff);
+                rootBuilder.append(diff);
+            }
+
+            if (!scope.unversionedPathspecs().isEmpty()) {
+                String untrackedDiff = collectUntrackedFiles(root, warnings, scope.unversionedPathspecs());
+                if (untrackedDiff.isBlank()) {
+                    warnings.add("No selected unversioned text files were available to include.");
+                } else {
+                    if (rootBuilder.length() > 0 && rootBuilder.charAt(rootBuilder.length() - 1) != '\n') {
+                        rootBuilder.append('\n');
+                    }
+                    rootBuilder.append(untrackedDiff);
+                }
+            }
+
+            if (!rootBuilder.isEmpty()) {
+                if (scopes.size() > 1) {
+                    appendRepositoryHeader(builder, root);
+                }
+                builder.append(rootBuilder);
             }
         }
 
@@ -104,7 +126,8 @@ public final class GitDiffService {
             throw new IOException("No Git diff found for the included Commit tool window changes.");
         }
 
-        return buildResult(root, diff, maxDiffChars, warnings);
+        Path displayRoot = scopes.size() == 1 ? scopes.keySet().iterator().next() : projectPath(project);
+        return buildResult(displayRoot, diff, maxDiffChars, warnings);
     }
 
     private Path projectPath(Project project) throws IOException {
@@ -125,6 +148,60 @@ public final class GitDiffService {
             throw new IOException("Current project is not inside a Git repository.");
         }
         return Path.of(output);
+    }
+
+    private List<Path> gitRoots(Path projectPath) throws IOException, InterruptedException {
+        try {
+            return List.of(resolveGitRoot(projectPath));
+        } catch (IOException exception) {
+            List<Path> roots = discoverChildGitRoots(projectPath);
+            if (!roots.isEmpty()) {
+                return roots;
+            }
+            throw exception;
+        }
+    }
+
+    private List<Path> discoverChildGitRoots(Path projectPath) throws IOException {
+        if (!Files.isDirectory(projectPath)) {
+            return List.of();
+        }
+        try (var children = Files.list(projectPath)) {
+            return children
+                    .filter(Files::isDirectory)
+                    .filter(path -> Files.exists(path.resolve(".git")))
+                    .sorted()
+                    .map(Path::toAbsolutePath)
+                    .map(Path::normalize)
+                    .toList();
+        }
+    }
+
+    private String collectRootDiff(Path root, List<String> warnings) throws IOException, InterruptedException {
+        String diff = runGit(root, "diff", "--cached", "--no-ext-diff", "--diff-filter=ACMRTUXB", "--");
+        if (diff.isBlank()) {
+            warnings.add("No staged diff found in " + root.getFileName() + "; used working tree diff.");
+            diff = runGit(root, "diff", "--no-ext-diff", "--diff-filter=ACMRTUXB", "--");
+        }
+        if (diff.isBlank()) {
+            diff = collectUntrackedFiles(root, warnings, null);
+        }
+        return diff;
+    }
+
+    private Map<Path, GitRootScope> gitRootScopes(
+            Collection<Change> includedChanges,
+            Collection<FilePath> includedUnversionedFiles
+    ) throws IOException, InterruptedException {
+        Map<Path, GitRootScope> scopes = new LinkedHashMap<>();
+        for (Change change : includedChanges) {
+            addRevisionPath(scopes, change.getBeforeRevision(), false);
+            addRevisionPath(scopes, change.getAfterRevision(), false);
+        }
+        for (FilePath file : includedUnversionedFiles) {
+            addFilePath(scopes, file, true);
+        }
+        return scopes;
     }
 
     private String collectUntrackedFiles(Path root, List<String> warnings, Set<String> allowedRelativePaths) throws IOException, InterruptedException {
@@ -250,7 +327,7 @@ public final class GitDiffService {
             return "";
         }
 
-        Path tempDir = Files.createTempDirectory("git-commit-ai-partial-diff");
+        Path tempDir = Files.createTempDirectory("commitcraft-partial-diff");
         Path beforeFile = tempDir.resolve("before");
         Path afterFile = tempDir.resolve("after");
         try {
@@ -312,45 +389,53 @@ public final class GitDiffService {
         return args;
     }
 
-    private List<String> changePathspecs(Path root, Collection<Change> changes) {
-        Set<String> result = new LinkedHashSet<>();
-        for (Change change : changes) {
-            addRevisionPath(root, change.getBeforeRevision(), result);
-            addRevisionPath(root, change.getAfterRevision(), result);
+    private void appendRepositoryHeader(StringBuilder builder, Path root) {
+        if (builder.length() > 0 && builder.charAt(builder.length() - 1) != '\n') {
+            builder.append('\n');
         }
-        return List.copyOf(result);
+        builder.append("Repository: ").append(root).append('\n');
     }
 
-    private Set<String> filePathspecs(Path root, Collection<FilePath> files) {
-        Set<String> result = new LinkedHashSet<>();
-        for (FilePath file : files) {
-            addFilePath(root, file, result);
-        }
-        return result;
-    }
-
-    private void addRevisionPath(Path root, ContentRevision revision, Set<String> result) {
+    private void addRevisionPath(Map<Path, GitRootScope> scopes, ContentRevision revision, boolean unversioned)
+            throws IOException, InterruptedException {
         if (revision != null) {
-            addFilePath(root, revision.getFile(), result);
+            addFilePath(scopes, revision.getFile(), unversioned);
         }
     }
 
-    private void addFilePath(Path root, FilePath file, Set<String> result) {
+    private void addFilePath(Map<Path, GitRootScope> scopes, FilePath file, boolean unversioned)
+            throws IOException, InterruptedException {
         if (file == null || file.isNonLocal()) {
             return;
         }
-        String relativePath = relativePath(root, file.getIOFile().toPath());
+        Path filePath = file.getIOFile().toPath();
+        Path root = resolveGitRoot(gitSearchDirectory(filePath));
+        String relativePath = relativePath(root, filePath);
         if (relativePath != null) {
-            result.add(relativePath);
+            GitRootScope scope = scopes.computeIfAbsent(root, GitRootScope::new);
+            if (unversioned) {
+                scope.unversionedPathspecs().add(relativePath);
+            } else {
+                scope.changePathspecs().add(relativePath);
+            }
         }
     }
 
+    private Path gitSearchDirectory(Path filePath) {
+        Path candidate = Files.isDirectory(filePath) ? filePath : filePath.getParent();
+        while (candidate != null && !Files.exists(candidate)) {
+            candidate = candidate.getParent();
+        }
+        return candidate == null ? filePath.toAbsolutePath().normalize() : candidate.toAbsolutePath().normalize();
+    }
+
     private String relativePath(Path root, Path file) {
-        Path path = file.normalize();
-        if (!path.startsWith(root)) {
+        Path normalizedRoot = root.toAbsolutePath().normalize();
+        Path path = file.toAbsolutePath().normalize();
+        if (!path.startsWith(normalizedRoot)) {
             return null;
         }
-        return root.relativize(path).toString();
+        return normalizedRoot.relativize(path).toString().replace('\\', '/');
     }
 
     private boolean isBinary(byte[] bytes) {
@@ -413,6 +498,28 @@ public final class GitDiffService {
             throw new IOException(stderr.isBlank() ? "Git command failed." : stderr.trim());
         }
         return stdout;
+    }
+
+    private static final class GitRootScope {
+        private final Path root;
+        private final Set<String> changePathspecs = new LinkedHashSet<>();
+        private final Set<String> unversionedPathspecs = new LinkedHashSet<>();
+
+        private GitRootScope(Path root) {
+            this.root = root;
+        }
+
+        private Path root() {
+            return root;
+        }
+
+        private Set<String> changePathspecs() {
+            return changePathspecs;
+        }
+
+        private Set<String> unversionedPathspecs() {
+            return unversionedPathspecs;
+        }
     }
 
     private record PartialFile(String relativePath, VirtualFile virtualFile, Set<String> changelistIds) {
