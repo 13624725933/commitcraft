@@ -15,6 +15,8 @@ import com.intellij.openapi.vcs.impl.LineStatusTrackerManager;
 import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +28,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public final class GitDiffService {
@@ -543,19 +547,11 @@ public final class GitDiffService {
         command.add(directory.toString());
         command.addAll(args);
 
-        Process process = new ProcessBuilder(command).start();
-        boolean finished = process.waitFor(COMMAND_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-        if (!finished) {
-            process.destroyForcibly();
-            throw new IOException("Git command timed out: " + String.join(" ", command));
+        ProcessOutput output = runCommand(command);
+        if (output.exitCode() != 0) {
+            throw new IOException(output.stderr().isBlank() ? "Git command failed." : output.stderr().trim());
         }
-
-        String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-        if (process.exitValue() != 0) {
-            throw new IOException(stderr.isBlank() ? "Git command failed." : stderr.trim());
-        }
-        return stdout;
+        return output.stdout();
     }
 
     private String runGitNoIndex(Path beforeFile, Path afterFile) throws IOException, InterruptedException {
@@ -569,20 +565,60 @@ public final class GitDiffService {
                 afterFile.toString()
         );
 
+        ProcessOutput output = runCommand(command);
+        int exitCode = output.exitCode();
+        if (exitCode != 0 && exitCode != 1) {
+            throw new IOException(output.stderr().isBlank() ? "Git command failed." : output.stderr().trim());
+        }
+        return output.stdout();
+    }
+
+    private ProcessOutput runCommand(List<String> command) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command).start();
-        boolean finished = process.waitFor(COMMAND_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+
+        // A large diff can fill the OS pipe and block Git, so drain both streams while the process runs.
+        CompletableFuture<byte[]> stdoutFuture = readAsync(process.getInputStream());
+        CompletableFuture<byte[]> stderrFuture = readAsync(process.getErrorStream());
+        boolean finished;
+        try {
+            finished = process.waitFor(COMMAND_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException exception) {
+            process.destroyForcibly();
+            throw exception;
+        }
         if (!finished) {
             process.destroyForcibly();
-            throw new IOException("Git command timed out: " + String.join(" ", command));
+            process.waitFor();
         }
 
-        String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-        int exitCode = process.exitValue();
-        if (exitCode != 0 && exitCode != 1) {
-            throw new IOException(stderr.isBlank() ? "Git command failed." : stderr.trim());
+        String stdout = new String(awaitOutput(stdoutFuture), StandardCharsets.UTF_8);
+        String stderr = new String(awaitOutput(stderrFuture), StandardCharsets.UTF_8);
+        if (!finished) {
+            throw new IOException("Git command timed out: " + String.join(" ", command));
         }
-        return stdout;
+        return new ProcessOutput(process.exitValue(), stdout, stderr);
+    }
+
+    private CompletableFuture<byte[]> readAsync(InputStream stream) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (stream) {
+                return stream.readAllBytes();
+            } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+            }
+        });
+    }
+
+    private byte[] awaitOutput(CompletableFuture<byte[]> output) throws IOException, InterruptedException {
+        try {
+            return output.get();
+        } catch (ExecutionException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof UncheckedIOException uncheckedIOException) {
+                throw uncheckedIOException.getCause();
+            }
+            throw new IOException("Failed to read Git command output.", cause);
+        }
     }
 
     private static final class GitRootScope {
@@ -614,5 +650,8 @@ public final class GitDiffService {
         private static PartialDiff empty() {
             return new PartialDiff("", Set.of());
         }
+    }
+
+    private record ProcessOutput(int exitCode, String stdout, String stderr) {
     }
 }

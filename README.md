@@ -10,7 +10,7 @@
 
 `CommitCraft` 适合日常开发中快速生成规范、清晰的 Git commit message。插件会读取当前项目的 Git 变更内容，调用你配置的大模型接口，并把生成结果填入 IDEA 的 Commit 提交信息输入框。
 
-当前版本：`0.2.2`
+当前版本：`0.2.3`
 
 ## 功能特性
 
@@ -30,7 +30,7 @@
 
 如果你只想安装插件，下载仓库中的 ZIP：
 
-[releases/commitcraft-0.2.2.zip](releases/commitcraft-0.2.2.zip)
+[releases/commitcraft-0.2.3.zip](releases/commitcraft-0.2.3.zip)
 
 也可以从 GitHub Releases 下载同名 ZIP。
 
@@ -40,7 +40,7 @@
 2. 进入 `Settings/Preferences | Plugins`。
 3. 点击插件页右上角齿轮按钮。
 4. 选择 `Install Plugin from Disk...`。
-5. 选择 `commitcraft-0.2.2.zip`。
+5. 选择 `commitcraft-0.2.3.zip`。
 6. 重启 IDEA。
 
 如果你之前安装过旧版插件，建议先卸载旧版再安装新版。
@@ -109,7 +109,7 @@ Output Language: 简体中文
 
 ### 按钮没有出现
 
-确认安装的是 `0.2.2` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
+确认安装的是 `0.2.3` 或更新版本，并重启 IDEA。按钮应出现在 Commit message 输入框上方工具栏，靠近“修正”和历史图标。
 
 ### 生成结果为空或提示没有 diff
 

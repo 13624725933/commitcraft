@@ -17,7 +17,7 @@ plugins {
 apply plugin: 'org.jetbrains.intellij'
 
 group = 'com.local.commitcraft'
-version = '0.2.2'
+version = '0.2.3'
 
 repositories {
     mavenCentral()
