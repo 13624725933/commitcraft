@@ -3,6 +3,7 @@ package com.local.commitcraft.git;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vcs.changes.ContentRevision;
@@ -92,10 +93,14 @@ public final class GitDiffService {
 
             if (!pathspecs.isEmpty()) {
                 String diff = runGit(root, diffArgs(true, pathspecs));
+                boolean usedStagedDiff = !diff.isBlank();
                 if (diff.isBlank()) {
                     warnings.add("No staged diff found for included changes; used full working tree diff for included files.");
                     diff = runGit(root, diffArgs(false, pathspecs));
-                } else {
+                }
+                if (diff.isBlank()) {
+                    diff = collectRevisionDiffs(root, includedChanges, pathspecs, warnings);
+                } else if (usedStagedDiff) {
                     warnings.add("Used staged diff for included changes.");
                 }
                 rootBuilder.append(diff);
@@ -212,7 +217,7 @@ public final class GitDiffService {
             if (relative.isEmpty()) {
                 continue;
             }
-            if (allowedRelativePaths != null && !allowedRelativePaths.contains(relative)) {
+            if (allowedRelativePaths != null && !includesPath(allowedRelativePaths, relative)) {
                 continue;
             }
             Path file = root.resolve(relative).normalize();
@@ -310,6 +315,66 @@ public final class GitDiffService {
             }
         }
         return result;
+    }
+
+    private String collectRevisionDiffs(
+            Path root,
+            Collection<Change> changes,
+            Collection<String> pathspecs,
+            List<String> warnings
+    ) throws IOException, InterruptedException {
+        Set<String> allowedPathspecs = new LinkedHashSet<>(pathspecs);
+        StringBuilder builder = new StringBuilder();
+        for (Change change : changes) {
+            FilePath file = changedFile(change);
+            if (file == null || file.isNonLocal()) {
+                continue;
+            }
+
+            String relativePath = relativePath(root, file.getIOFile().toPath());
+            if (relativePath == null || relativePath.isEmpty() || !includesPath(allowedPathspecs, relativePath)) {
+                continue;
+            }
+
+            String before = revisionContent(change.getBeforeRevision(), "");
+            String after = revisionContent(change.getAfterRevision(), "");
+            if (before == null || after == null || before.equals(after)) {
+                continue;
+            }
+
+            String diff = unifiedTextDiff(relativePath, before, after);
+            if (diff.isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0 && builder.charAt(builder.length() - 1) != '\n') {
+                builder.append('\n');
+            }
+            builder.append(diff);
+        }
+        if (!builder.isEmpty()) {
+            warnings.add("Used IntelliJ change content because Git diff was empty for included files.");
+        }
+        return builder.toString();
+    }
+
+    private FilePath changedFile(Change change) {
+        ContentRevision afterRevision = change.getAfterRevision();
+        if (afterRevision != null) {
+            return afterRevision.getFile();
+        }
+        ContentRevision beforeRevision = change.getBeforeRevision();
+        return beforeRevision == null ? null : beforeRevision.getFile();
+    }
+
+    private String revisionContent(ContentRevision revision, String missingRevisionContent) {
+        if (revision == null) {
+            return missingRevisionContent;
+        }
+        try {
+            return revision.getContent();
+        } catch (VcsException exception) {
+            return null;
+        }
     }
 
     private VirtualFile virtualFile(Change change) {
@@ -410,13 +475,13 @@ public final class GitDiffService {
         }
         Path filePath = file.getIOFile().toPath();
         Path root = resolveGitRoot(gitSearchDirectory(filePath));
-        String relativePath = relativePath(root, filePath);
-        if (relativePath != null) {
+        String pathspec = pathspec(root, filePath);
+        if (pathspec != null) {
             GitRootScope scope = scopes.computeIfAbsent(root, GitRootScope::new);
             if (unversioned) {
-                scope.unversionedPathspecs().add(relativePath);
+                scope.unversionedPathspecs().add(pathspec);
             } else {
-                scope.changePathspecs().add(relativePath);
+                scope.changePathspecs().add(pathspec);
             }
         }
     }
@@ -429,6 +494,14 @@ public final class GitDiffService {
         return candidate == null ? filePath.toAbsolutePath().normalize() : candidate.toAbsolutePath().normalize();
     }
 
+    private String pathspec(Path root, Path file) {
+        String relativePath = relativePath(root, file);
+        if (relativePath == null) {
+            return null;
+        }
+        return relativePath.isEmpty() ? "." : relativePath;
+    }
+
     private String relativePath(Path root, Path file) {
         Path normalizedRoot = root.toAbsolutePath().normalize();
         Path path = file.toAbsolutePath().normalize();
@@ -436,6 +509,18 @@ public final class GitDiffService {
             return null;
         }
         return normalizedRoot.relativize(path).toString().replace('\\', '/');
+    }
+
+    private boolean includesPath(Set<String> allowedRelativePaths, String relativePath) {
+        if (allowedRelativePaths.contains(".")) {
+            return true;
+        }
+        for (String allowed : allowedRelativePaths) {
+            if (relativePath.equals(allowed) || relativePath.startsWith(allowed + "/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isBinary(byte[] bytes) {

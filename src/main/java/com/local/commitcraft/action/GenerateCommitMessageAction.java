@@ -14,6 +14,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -58,6 +59,8 @@ public final class GenerateCommitMessageAction extends AnAction implements DumbA
         if (project == null) {
             return;
         }
+
+        FileDocumentManager.getInstance().saveAllDocuments();
 
         CommitCraftSettings settings = CommitCraftSettings.getInstance();
         LicenseCheck license = new LicenseVerifier().verify(settings.getState().activationCode, MachineCode.current());
